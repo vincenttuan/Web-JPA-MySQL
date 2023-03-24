@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<link rel="stylesheet" href="/Web-JPA-MySQL/css/pure-min.css">
+		<link rel="stylesheet" href="/Web-JPA-MySQL/css/button-style.css">
+		<title>Ajax Employee</title>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+		<script type="text/javascript">
+			var apiEndpoint = '/Web-JPA-MySQL/ajax/employees/';
+			
+			// 頁面載入完畢後所自動要執行的第一個程序
+			$(document).ready(function() {
+				queryAllEmployees();
+				
+				$("#add-form").submit(function(event) {
+				    event.preventDefault(); // 防止表單直接提交
+					
+					var empId = $('#id-input').val();
+					var name = $('#name-input').val();
+					var salary = $('#salary-input').val();
+					var employee = {id: empId, name: name, salary: salary};
+					
+					switch($('#submit-btn').text()) {
+						case '新增':
+							addEmployee(employee);
+							break;
+						case '修改':
+							updateEmployee(employee);
+							break;
+						case '刪除':
+							deleteEmployee(empId);
+							break;
+					}
+					
+					queryAllEmployees();
+					$('#add-form')[0].reset();
+				});
+				
+				// 若清空事件發生就改變按鈕文字
+				$('#add-form')[0].addEventListener('reset', function() {
+					   console.log('Reset event fired!');
+					   $('#submit-btn').text('新增');
+				});
+			});
+			
+			$(document).on('click', '.edit-btn, .del-btn', function() {
+			    var empId = $(this).closest('tr').find('td:first').text();
+			    console.log('Employee ID: ' + empId);
+			    $("#submit-btn").text($(this).hasClass('edit-btn') ? "修改" : "刪除");
+			    getEmployeeById(empId);
+			});
+			
+			$(document).on('click', '.del-btn', function() {
+			    var empId = $(this).closest('tr').find('td:first').text();
+			    console.log('Employee ID: ' + empId);
+			    getEmployeeById(empId);
+			});
+			
+			// 新增
+			function addEmployee(employee) {
+				// 新增時預設 id 的內容 = 0
+				employee.id = 0;
+				console.log(employee);
+				$.ajax({
+					url: apiEndpoint,
+					type: "POST",
+					dataType: "json",
+					data: JSON.stringify(employee), // 將員工物件轉成 JSON 格式的字串
+					contentType: "application/json", // 設定 request 的 content type 為 application/json
+					success: function(msg) {
+						console.log(msg);
+					},
+					error: function(jqXHR, textStatus) {
+						console.log(jqXHR.status);
+						console.log(textStatus);
+					}
+				});
+			}
+			
+			// 修改
+			function updateEmployee(employee) {
+				console.log(employee);
+				$.ajax({
+					url: apiEndpoint + employee.id,
+					type: "PUT",
+					dataType: "json",
+					data: JSON.stringify(employee), // 將員工物件轉成 JSON 格式的字串
+					contentType: "application/json", // 設定 request 的 content type 為 application/json
+					success: function(msg) {
+						console.log(msg);
+					},
+					error: function(jqXHR, textStatus) {
+						console.log(jqXHR.status);
+						console.log(textStatus);
+					}
+				});
+			}
+			// 修改
+			function deleteEmployee(empId) {
+				$.ajax({
+					url: apiEndpoint + empId,
+					type: "DELETE",
+					dataType: "json",
+					success: function(msg) {
+						console.log(msg);
+					},
+					error: function(jqXHR, textStatus) {
+						console.log(jqXHR.status);
+						console.log(textStatus);
+					}
+				});
+			}
+			
+			// 查詢所有資料
+			function queryAllEmployees() {
+				$.ajax({
+					url: apiEndpoint,
+					type: "GET",
+					dataType: "json",
+					success: function(employees) {
+						console.log(employees);
+						$("#employee-list").empty();
+						$.each(employees, function(index, emp){
+							var html = '';
+							// 組 tbody-tr-td
+							html += '<tr>';
+							html += '<td>' + emp.id + '</td>';
+							html += '<td>' + emp.name + '</td>';
+							html += '<td>' + emp.salary + '</td>';
+							html += '<td class="edit-btn">修改</td>';
+							html += '<td class="del-btn">刪除</td>';
+							html += '</tr>';
+							
+							$("#employee-list").append(html);
+						});
+					},
+					error: function(jqXHR, textStatus, errorThrown) {
+						console.log(jqXHR.status);
+						console.log(textStatus);
+						console.log(errorThrow);
+					}
+				});
+			}
+			
+			// 查詢單筆
+			function getEmployeeById(id) {
+				$.ajax({
+					url: apiEndpoint + id,
+					type: "GET",
+					dataType: "json",
+					success: function(employee) {
+						console.log(employee);
+						//alert(JSON.stringify(employee));
+						$("#id-input").val(employee.id);
+						$("#name-input").val(employee.name);
+						$("#salary-input").val(employee.salary);
+					},
+					error: function(jqXHR, textStatus, errorThrown) {
+						console.log(jqXHR.status);
+						console.log(textStatus);
+						console.log(errorThrow);
+					}
+				});
+			}
+		
+		</script>
+	</head>
+	<body style="padding: 20px">
+		<form class="pure-form" id="add-form">
+			<fieldset>
+				<legend>Employee Form</legend>
+				<input type="hidden" id="id-input"> <!-- 隱藏 id 欄位 -->
+				姓名: <input type="text" id="name-input" placeholder="請輸入員工姓名" required><p>
+				薪資: <input type="number" id="salary-input" placeholder="請輸入員工薪資" required><p>
+				<button class="pure-button" type="reset">清空</button>&nbsp;
+				<button class="pure-button pure-button-primary" id="submit-btn" type="submit">新增</button>
+			</fieldset>
+		</form>
+		
+		<form class="pure-form">
+			<fieldset>
+				<legend>Employee List</legend>
+				<table class="pure-table pure-table-bordered">
+					<thead>
+						<tr>
+							<th>ID</th><th>姓名</th><th>薪資</th><th>修改</th><th>刪除</th>
+						</tr>
+					</thead>
+					<tbody id="employee-list">
+						
+					</tbody>
+				</table>
+			</fieldset>
+			
+		</form>
+		
+	</body>
+</html>
